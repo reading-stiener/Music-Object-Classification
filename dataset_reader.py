@@ -51,22 +51,38 @@ class class_dataset_reader:
                         self.load_class(folder,class_index)
 
 
-            np.save(self.dest_path+"/template paths.npy", self.images) 
-            np.save(self.dest_path+"/annotation.npy", self.annotations)
+            np.save("template_paths.npy", self.images) 
+            np.save("annotations.npy", self.annotations)
+
 
         else:  
             if train_test:  
-                self.images = np.load(self.dest_path+"/train_images.npy") 
-                self.annotations =  np.load(self.dest_path+"/train_annotations.npy")
-                self.test_images = np.load(self.dest_path+"/test_images.npy") 
-                self.test_annotations =  np.load(self.dest_path+"/test_annotations.npy")
+                self.images = np.load("train_images.npy") 
+                self.annotations =  np.load("train_annotations.npy")
+                self.test_images = np.load("test_images.npy") 
+                self.test_annotations =  np.load("test_annotations.npy")
+
+                train_img_annotation = np.vstack((self.images, self.annotations)).T
+                np.savetxt("train_image_annotation.csv", train_img_annotation, 
+                           delimiter=",",
+                           fmt=["%s", "%s"],
+                           header='filename,annotation',
+                           comments='')
+
+                test_img_annotation = np.vstack((self.test_images, self.test_annotations)).T
+                np.savetxt("test_image_annotation.csv", test_img_annotation, 
+                           delimiter=",",
+                           fmt=["%s", "%s"],
+                           header='filename,annotation',
+                           comments='')
                 
                 return None
-
-            self.images = np.load(self.dest_path+"/template paths.npy")
-            self.annotations = np.load(self.dest_path+"/annotation.npy")
-
         
+
+            self.images = np.load("template_paths.npy")
+            self.annotations = np.load("template_annotations.npy")
+
+            
         print("arrays were made")
         # extract test data
         test_indices = []
@@ -108,11 +124,23 @@ class class_dataset_reader:
         self.test_images = self.test_images[perm]
         self.test_annotations = self.test_annotations[perm]
 
-        np.save(self.dest_path+"/train_images.npy", self.images) 
-        np.save(self.dest_path+"/train_annotations.npy", self.annotations)
-        np.save(self.dest_path+"/test_images.npy", self.test_images) 
-        np.save(self.dest_path+"/test_annotations.npy", self.test_annotations)
-  
+        np.save("train_images.npy", self.images) 
+        np.save("train_annotations.npy", self.annotations)
+        np.save("test_images.npy", self.test_images) 
+        np.save("test_annotations.npy", self.test_annotations)
+
+        train_img_annotation = np.vstack((self.images, self.annotations)).T
+        np.savetxt("train_image_annotation.csv", train_img_annotation, 
+                           delimiter=",",
+                           fmt=["%s", "%s"],
+                           header='filename,annotation',
+                           comments='')
+        test_img_annotation = np.vstack((self.test_images, self.test_annotations)).T
+        np.savetxt("test_image_annotation.csv", test_img_annotation, 
+                           delimiter=",",
+                           fmt=["%s", "%s"],
+                           header='filename,annotation',
+                           comments='')
 
     def load_class(self, folder, class_index):
         # move trough images in folder
@@ -159,4 +187,4 @@ class class_dataset_reader:
 if __name__ == "__main__":
     data_reader = class_dataset_reader(records_list="/home/abi-osler/Documents/CV_final_project/DeepScoresClassification",
                                         dest_path= "/home/abi-osler/Documents/CV_final_project/final_project/images_template_matching" )
-    data_reader.read_images()
+    data_reader.read_images(train_test=True)
