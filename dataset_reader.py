@@ -26,8 +26,6 @@ class class_dataset_reader:
 
         self.class_names = pa.read_csv(self.path+"/class_names.csv", header=None)
 
-        #print('class names', self.class_names)
-
         config = open(self.path+"/config.txt", "r")
         config_str = config.read()
         self.tile_size = re.split('\)|,|\(', config_str)[4:6]
@@ -49,8 +47,6 @@ class class_dataset_reader:
                 if os.path.isdir(self.path +"/"+folder) and max(self.class_names[1].isin([folder])):
                         class_index = int(self.class_names[self.class_names[1] == folder][0])
                         self.load_class(folder,class_index)
-
-
             np.save("template_paths.npy", self.images) 
             np.save("annotations.npy", self.annotations)
 
@@ -75,12 +71,10 @@ class class_dataset_reader:
                            fmt=["%s", "%s"],
                            header='filename,annotation',
                            comments='')
-                
-                return None
         
 
-            self.images = np.load("template_paths.npy")
-            self.annotations = np.load("template_annotations.npy")
+        self.images = np.load("template_paths.npy")
+        self.annotations = np.load("template_annotations.npy")
 
             
         print("arrays were made")
@@ -90,7 +84,7 @@ class class_dataset_reader:
         
         print("splitting data: " + str(1 - self.split) + "-training " + str(self.split) + "-testing")
 
-        # going through unique annotations
+        # going through unique annotations 
         for cla in np.unique(self.annotations):
             if sum(self.annotations == cla) < self.min_nr:
                 print("Less than " + str(self.min_nr) + " occurences - removing class " + self.class_names[1][cla])
@@ -100,7 +94,7 @@ class class_dataset_reader:
                 np.random.shuffle(cla_indices)
                 train_indices.append(cla_indices[0:int(len(cla_indices) * (1 - self.split))])
                 test_indices.append(cla_indices[int(len(cla_indices) * (1 - self.split)):len(cla_indices)])
-    
+        
 
         train_indices = np.concatenate(train_indices)
         test_indices = np.concatenate(test_indices)
@@ -146,11 +140,9 @@ class class_dataset_reader:
         # move trough images in folder
         for image in os.listdir(self.path +"/"+folder):
             self.load_image(folder, image, class_index)
-        return None
 
     def load_image(self,folder,image, class_index):
         img = imread(self.path + "/" + folder + "/" + image)
-
         nr_y = img.shape[0] // self.tile_size[0]
         nr_x = img.shape[1] // self.tile_size[1]
         count = 0
@@ -163,15 +155,12 @@ class class_dataset_reader:
 
                 print("destination path", dest_image_path)
                 
-                # write a grayscale image to disk
-                im = img[y_i*self.tile_size[0]:(y_i+1)*self.tile_size[0], x_i*self.tile_size[1]:(x_i+1)*self.tile_size[1]]
-                print(im.shape)
+                # write the cropped image of tile size to disk
+                im = img[y_i*self.tile_size[0]:(y_i+1)*self.tile_size[0], x_i*self.tile_size[1]:(x_i+1)*self.tile_size[1],:]
 
                 imwrite(dest_image_path, im)
                 self.annotations.append(class_index)
                 count += 1
-
-        return None
 
 
     
@@ -187,4 +176,4 @@ class class_dataset_reader:
 if __name__ == "__main__":
     data_reader = class_dataset_reader(records_list="/home/abi-osler/Documents/CV_final_project/DeepScoresClassification",
                                         dest_path= "/home/abi-osler/Documents/CV_final_project/final_project/images_template_matching" )
-    data_reader.read_images(train_test=True)
+    data_reader.read_images()
