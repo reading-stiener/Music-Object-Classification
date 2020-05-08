@@ -41,12 +41,14 @@ model.add(Dropout(0.5))
 model.add(Dense(118, activation='softmax'))
 
 # directory for saving trained weights
-save_dir = os.path.join(os.getcwd(), 'saved_models')
+save_dir = os.path.join(os.getcwd(), 'saved_models2')
 
 
 # load weights
 #model.load_weights(save_dir+ "/best_model.hdf5")
-model.load_weights(save_dir+ "/keras_deep_scores_music_object_model.h5")
+model.load_weights(save_dir+ "/saved-model-908-1.00.hdf5")
+
+
 # Compile model (required to make predictions)
 
 opt = optimizers.rmsprop(lr=0.0001, decay=1e-6)
@@ -57,7 +59,9 @@ model.compile(optimizer=opt,
 
 print("Created model and loaded weights from file")
 
-test_df = pd.read_csv("test_image_annotation.csv", dtype=str) 
+# Setting is test data generator 
+
+test_df = pd.read_csv("processed_data_files/test_image_annotation.csv", dtype=str) 
 
 test_datagen = ImageDataGenerator(rescale=1./255)
 test_generator = test_datagen.flow_from_dataframe(

@@ -9,12 +9,61 @@ from cv2 import imread, imwrite
 import random 
 
 class class_dataset_reader:
+    """
+    Class for processing dataset. Used this for both detecting using Pearson's correalation and 
+    CNN model 
+
+    Attributes
+    ----------
+
+    self.path (str): 
+        Path for DeepScores-Example directory 
+    
+    self.dest_path (str): 
+        Path for all processed images from the dataset
+    
+    self.file_path (str): 
+        Path for list of file_images paths with its annotations for train, test, validation sets
+
+    Methods
+    --------
+    
+    read_images(): 
+        Reads through folders for each class 
+    
+    load_class(folder, class_index): 
+        Goes through unprocessed files for each class folder 
+    
+    load_image(folder, class_index): 
+        Splits each image using of tile size (220,120,3)
+
+    """
+
 
     def __init__(self, data_path, seed = 444, split = (0.7,0.2,0.1), min_nr = 2, train_test=False):
         """
         Initialize a file reader for the DeepScores classification data
-        :param records_list: path to the dataset
-        sample record: {'image': f, 'annotation': annotation_file, 'filename': filename}
+        
+        Parameters 
+        ----------
+        
+        data_path (str): 
+            Path to the dataset
+
+        seed (int): 
+            Value for shuffling data 
+        
+        split (int tuple): 
+            Train, validation, test split ratio 
+        
+        min_nr (int): 
+            Minimum number of samples for splitting data of a class 
+        
+        train_test (bool): 
+            Flag if set True uses train, validation, test split already
+            stored on disk. 
+        
+
         """
         
         print("Initializing DeepScores Classification Batch Dataset Reader...")
@@ -24,9 +73,9 @@ class class_dataset_reader:
         self.seed = seed
         self.file_path = "processed_data_files"
         self.train_test = train_test
-        
         if not os.path.exists(self.file_path): 
             os.makedirs(self.file_path)
+
 
         self.class_names = pa.read_csv(self.path+"/class_names.csv", header=None)
         config = open(self.path+"/config.txt", "r")
@@ -44,6 +93,22 @@ class class_dataset_reader:
         self.annotations = [] 
 
     def read_images(self):
+        """
+        Reads through folders for each class. Using methods below to process files and store them in dest_path. 
+        The list of each processed image path with its annotation format is stored in file_path. File formats used 
+        are .npy and .csv files
+
+        Parameters
+        -----------
+        None 
+
+        Returns
+        -------- 
+        None 
+        
+        """
+
+        # checks to see dest doesn't exist
         if not os.path.exists(self.dest_path):
             os.makedirs(self.dest_path)
             print("Preparing dataset folders...")
@@ -51,11 +116,19 @@ class class_dataset_reader:
                 if os.path.isdir(self.path +"/"+folder) and max(self.class_names[1].isin([folder])):
                         class_index = int(self.class_names[self.class_names[1] == folder][0])
                         self.load_class(folder,class_index)
+                        
             np.save(self.file_path+"/data_paths.npy", self.images) 
             np.save(self.file_path+"/data_annotations.npy", self.annotations)
 
+            print("total files", len(self.images))
+
 
         else:  
+            # check to see file_path exists. Loads the prepopulated data if train test 
+            # flag is True
+                    
+           
+
             if len(os.listdir(self.file_path)) and self.train_test:  
                 self.train_images = np.load(self.file_path+"/train_images.npy") 
                 self.train_annotations = np.load(self.file_path+"/train_annotations.npy")
@@ -108,13 +181,15 @@ class class_dataset_reader:
                 # do split into test train and validation sets
                 cla_indices = np.where(self.annotations == cla)[0]
                 np.random.shuffle(cla_indices)
-                train_indices.append(cla_indices[0:int(len(cla_indices) * self.split[0])])
                 
-                val_indices.append(cla_indices[int(len(cla_indices) * self.split[0]): \
-                                    int(len(cla_indices) * (self.split[0]+self.split[1]))])
+                num_idx = len(cla_indices)
+
+                train_indices.append(cla_indices[0:int(num_idx * self.split[0])])
                 
-                test_indices.append(cla_indices[int(len(cla_indices)* \
-                (self.split[0]+self.split[1]+self.split[2])):len(cla_indices)])
+                val_indices.append(cla_indices[int(num_idx * self.split[0]): \
+                                    int(num_idx * (self.split[0]+self.split[1]))])
+                
+                test_indices.append(cla_indices[int(num_idx* (self.split[0]+self.split[1])): num_idx])
         
         # concatenating the numpy arrays for every piece
         train_indices = np.concatenate(train_indices)
@@ -133,7 +208,8 @@ class class_dataset_reader:
 
         self.test_images = self.images[test_indices]
         self.test_annotations = self.annotations[test_indices]
-        print(len(test_indices))
+       
+        
 
         # Shuffle the test data
         perm = np.arange(self.test_images.shape[0])
@@ -141,6 +217,11 @@ class class_dataset_reader:
         np.random.shuffle(perm)
         self.test_images = self.test_images[perm]
         self.test_annotations = self.test_annotations[perm]
+
+        #saving new train, test, validation split into file_path
+
+        np.save(self.file_path+"/images.npy", self.images) 
+        np.save(self.file_path+"/annotations.npy", self.annotations)
 
         np.save(self.file_path+"/train_images.npy", self.train_images) 
         np.save(self.file_path+"/train_annotations.npy", self.train_annotations)
@@ -171,16 +252,52 @@ class class_dataset_reader:
                            comments='')
 
     def load_class(self, folder, class_index):
-        # move trough images in folder
+        """
+        Goes through unprocessed files for each class folder 
+
+        Parameters
+        ----------
+        
+        folder (str): 
+            path for class folder 
+
+        class_index (int): 
+            annotation for the class files
+
+        Returns
+        --------
+        
+        None
+
+        """
         for image in os.listdir(self.path +"/"+folder):
             self.load_image(folder, image, class_index)
 
     def load_image(self,folder,image, class_index):
+        """
+        Splits each image using of tile size (220,120,3)
+
+        Parameters
+        ----------
+
+        folder (str):
+            path for class folder
+        
+        image (str): 
+            Filename for image in folder
+
+        class_index (int): 
+            Image annotation
+
+        """
+
+
         img = imread(self.path + "/" + folder + "/" + image)
         nr_y = img.shape[0] // self.tile_size[0]
         nr_x = img.shape[1] // self.tile_size[1]
         count = 0
 
+        # splitting images into tiles and saving them to file_path
         for x_i in xrange(0, nr_x):
             for y_i in xrange(0, nr_y):
 
@@ -195,15 +312,24 @@ class class_dataset_reader:
                 count += 1
 
     
-    def test_set(self):  
+    def test_set(self): 
+        """
+
+        Creates a dictionary of test set
+        """
+
         return {"test_images": self.test_images, 
                 "test_annotations": self.test_annotations}
 
-    def train_set(self):  
-        return {"train_images": self.images, 
-                "train_annotations": self.annotations}
+    def train_set(self):
+        """
+
+        Creates a dictionary of train set 
+        """  
+        return {"train_images": self.train_images, 
+                "train_annotations": self.train_annotations}
 
 
 if __name__ == "__main__":
-    data_reader = class_dataset_reader(data_path="/home/abi-osler/Documents/CV_final_project/DeepScoresClassification")
+    data_reader = class_dataset_reader(data_path="/home/abi-osler/Documents/CV_final_project/DeepScoresClassification", train_test=True)
     data_reader.read_images()

@@ -10,18 +10,45 @@ FLAGS = None
 class detection_cor_coeff: 
     
     def __init__(self, train_set, test_set, random):
+        """
+        Class definition. 
+
+        Parameters
+        ----------
+         
+        train_set (str):
+            Dictionary of file paths and annotations 
+         
+        test_set (str):
+            Dictionary of file paths and annotations 
+
+        
+        random (boolean):
+            flag to either define templates at random or 
+            average them out 
+
+
+        """
         if random:
             self.templates = self.random_templates_gen(train_set) 
-            print("random")
         else: 
             self.templates = self.average_templates_gen(train_set)
-            print("average")
         self.test_set = test_set
 
 
     def random_templates_gen(self, train_set):
         """
         Random template generator.  
+
+        Parameters:
+        -----------
+        train_set (dict): 
+            Dictionary 
+        
+        Returns: 
+        --------
+        A templates dictionary with a random template each class 
+        
         """
         train_images = train_set["train_images"]
         train_annotations = train_set["train_annotations"]
@@ -36,6 +63,10 @@ class detection_cor_coeff:
     def average_templates_gen(self, train_set):  
         """ 
         Averaged template generator.
+
+        @param: train_set dictionary 
+        @return: A templates dictionary with an averaged out template of random 
+                 sample of size 10 for each class. 
         """ 
         train_images = train_set["train_images"]
         train_annotations = train_set["train_annotations"]
@@ -60,8 +91,20 @@ class detection_cor_coeff:
         """ 
         Takes in a template and test image of same annotation and 
         returns the pearson correlation coefficient
-        @param: Template and test_img both are numpy image arrays 
-        @return:  Boolean based on value of correlation. Returns 
+        
+        Parameters:
+        -----------
+        
+        template (dict): 
+            Numpy image arrays
+        
+        test_img (dict): 
+            Numpy image arrays 
+        
+        Returns:
+        ---------
+        
+        Boolean based on value of correlation. Returns 
         True is correlation is above a threshold   
         """   
         template_flat  = np.ravel(template)
@@ -80,8 +123,17 @@ class detection_cor_coeff:
         """
         Runs one to one template dectection on particular 
         batch size of test set 
-        @param:  A batch size 
-        @return: An accuracy
+        
+        Parameters:
+        -----------
+        
+        batch_size (int): A batch size 
+
+
+        Return:
+        -------
+        
+        An accuracy
         """ 
 
         count = 0 
@@ -98,11 +150,20 @@ class detection_cor_coeff:
         return count/batch_size 
     
     def template_detection_best_match(self, batch_size):
-        """ 
-        Finds the best matching template for a batch_size of 
-        images in the test set 
-        @param: A batch size 
-        @return: An accuracy
+        """
+        Runs one to one template dectection on particular 
+        batch size of test set 
+        
+        Parameters:
+        -----------
+        
+        batch_size (int): A batch size 
+
+
+        Return:
+        -------
+        
+        An accuracy
         """ 
         
         count = 0 
@@ -125,23 +186,22 @@ class detection_cor_coeff:
 
 
 def main():  
-    data_set = dataset_reader.class_dataset_reader(FLAGS.data_dir, FLAGS.dest_dir)
+    data_set = dataset_reader.class_dataset_reader(FLAGS.data_dir, train_test=True)
     
     # reads images in batches to aviod running out of memory 
-    data_set.read_images(train_test=True)
+    data_set.read_images()
+
     test_set = data_set.test_set()
     train_set = data_set.train_set()
-    print(FLAGS.randomized)
     simple_cor_coeff = detection_cor_coeff(train_set, test_set, random=FLAGS.randomized) 
     
     # maximum possible batch size
     max_batch_size = len(test_set["test_annotations"])
     print("Maximum batch size. ", max_batch_size)
 
-    #accuracy simple_cor_coeff.one_to_one_template_detection(batch_size=10000)
     if FLAGS.test_mode == "one_to_one": 
         accuracy = simple_cor_coeff.one_to_one_template_detection(batch_size=FLAGS.batch_size)
-        print("Accuracy of best match method is {0} for batch size of {1}".format(accuracy, FLAGS.batch_size))
+        print("Accuracy of one to one method is {0} for batch size of {1}".format(accuracy, FLAGS.batch_size))
         
     elif FLAGS.test_mode == "best_match": 
         accuracy = simple_cor_coeff.template_detection_best_match(batch_size=FLAGS.batch_size)
@@ -154,11 +214,6 @@ if __name__ == "__main__":
                       type=str,
                       default="/home/abi-osler/Documents/CV_final_project/DeepScoresClassification",
                       help="Directory for storing input data")
-
-  parser.add_argument("--dest_dir", 
-                      type=str,
-                      default="/home/abi-osler/Documents/CV_final_project/final_project/images_template_matching",
-                      help="Directory for storing processed dataset")
 
 
   parser.add_argument("--batch_size", 
@@ -179,6 +234,6 @@ if __name__ == "__main__":
                       type=lambda x: (str(x).lower() == 'true'),
                       help="Setting randomized to True sets the template at random. \
                       Setting it true sets a template from a random batch of 10 from train set")
-                      
+
   FLAGS, unparsed = parser.parse_known_args()
   main() 

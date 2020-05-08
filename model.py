@@ -12,8 +12,7 @@ import os
 
 
 # loading dataset
-dataset = class_dataset_reader(data_path="/home/abi-osler/Documents/CV_final_project/DeepScoresClassification", 
-                               train_test=True)
+dataset = class_dataset_reader(data_path="/home/abi-osler/Documents/CV_final_project/DeepScoresClassification")
                                
 
 dataset.read_images()
@@ -23,17 +22,21 @@ valid_df = pd.read_csv("processed_data_files/val_image_annotation.csv", dtype=st
 test_df = pd.read_csv("processed_data_files/test_image_annotation.csv", dtype=str) 
 
 # traning parameters 
-batch_size = 10
+batch_size = 20
 num_classes = 118 
-epochs = 100
+epochs = 1000
 input_shape = (220,120,3)
 
 # directory for saving trained weights
-save_dir = os.path.join(os.getcwd(), 'saved_models1')
+save_dir = os.path.join(os.getcwd(), 'saved_models2')
 model_name = 'keras_deep_scores_music_object_model.h5'
 
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
+
+# defining the CNN architecture 
+# adapted from the CNN example for CIFAR-10 dataset in 
+# official Keras documentation
 
 model = Sequential()
 model.add(Conv2D(32, (3, 3), padding='same',
@@ -57,12 +60,19 @@ model.add(Activation('relu'))
 model.add(Dropout(0.5))
 model.add(Dense(118, activation='softmax'))
 
+# defining an optimizer
 opt = optimizers.rmsprop(lr=0.0001, decay=1e-6)
 
+
+# compiling model
 model.compile(optimizer=opt,
              loss="categorical_crossentropy",
              metrics=["accuracy"])
 
+
+# setting a image data generator which produces subsets of images 
+# in batches we have to training in batches, because loading all images 
+# at once overcapacitates the memory
 
 train_datagen = ImageDataGenerator(rescale=1./ 255,
                                    shear_range=0.2,
@@ -95,15 +105,19 @@ test_generator = test_datagen.flow_from_dataframe(
         batch_size=batch_size,
         class_mode='categorical')
 
+
+# how many batches to run per epoch 
+
 STEP_SIZE_TRAIN=10#train_generator.n//train_generator.batch_size
 STEP_SIZE_VALID=10#valid_generator.n//valid_generator.batch_size
 STEP_SIZE_TEST=1000#test_generator.n//test_generator.batch_size
 
 
-
+# path for storing checkpoint files  
 filepath = "saved-model-{epoch:02d}-{accuracy:.2f}.hdf5"
-checkpoint = ModelCheckpoint(save_dir+"/"+filepath, monitor='accuracy', verbose=1, save_best_only=False, mode='max')
+checkpoint = ModelCheckpoint(save_dir+"/"+filepath, monitor='accuracy', verbose=1, save_best_only=True, mode='max')
 
+# runs the model of the train set along with validation of validation set 
 history = model.fit_generator(generator=train_generator,
                     steps_per_epoch=STEP_SIZE_TRAIN,
                     validation_data=valid_generator,
@@ -122,7 +136,7 @@ plt.xlabel('Epoch')
 #plt.xticks(range(1, epochs))
 plt.legend(loc='upper left')
 
-plt.savefig("accuracy&validation.png")
+plt.savefig("accuracy&validation1.png")
 plt.show()
 plt.close()
 
