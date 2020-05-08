@@ -12,22 +12,24 @@ import os
 
 
 # loading dataset
-dataset = class_dataset_reader(records_list="/home/abi-osler/Documents/CV_final_project/DeepScoresClassification",
-                                        dest_path= "/home/abi-osler/Documents/CV_final_project/final_project/images_template_matching")
+dataset = class_dataset_reader(data_path="/home/abi-osler/Documents/CV_final_project/DeepScoresClassification", 
+                               train_test=True)
+                               
 
-
+dataset.read_images()
 #setting up dataframes for batches 
-train_df = pd.read_csv("train_image_annotation.csv", dtype=str)
-test_df = pd.read_csv("test_image_annotation.csv", dtype=str) 
+train_df = pd.read_csv("processed_data_files/train_image_annotation.csv", dtype=str)
+valid_df = pd.read_csv("processed_data_files/val_image_annotation.csv", dtype=str)
+test_df = pd.read_csv("processed_data_files/test_image_annotation.csv", dtype=str) 
 
 # traning parameters 
-batch_size = 32
+batch_size = 10
 num_classes = 118 
 epochs = 1
 input_shape = (220,120,3)
 
 # directory for saving trained weights
-save_dir = os.path.join(os.getcwd(), 'saved_models')
+save_dir = os.path.join(os.getcwd(), 'saved_models1')
 model_name = 'keras_deep_scores_music_object_model.h5'
 
 if not os.path.isdir(save_dir):
@@ -62,49 +64,45 @@ model.compile(optimizer=opt,
              metrics=["accuracy"])
 
 
-train_datagen = ImageDataGenerator(
-    rescale=1./ 255, 
-    validation_split=0.10)
+train_datagen = ImageDataGenerator(rescale=1./ 255,
+                                   shear_range=0.2,
+                                   zoom_range=0.2,
+                                   horizontal_flip=True)
 
 test_datagen = ImageDataGenerator(rescale=1./255)
 
 train_generator = train_datagen.flow_from_dataframe(
         dataframe=train_df,
-        directory='data/train',
         x_col="filename",
         y_col="annotation",
-        subset="training",
         target_size=(220, 120),
         batch_size=batch_size,
         class_mode='categorical')
 
 valid_generator = test_datagen.flow_from_dataframe(
-        dataframe=train_df,
-        directory='data/train',
+        dataframe=valid_df,
         x_col="filename",
         y_col="annotation",
-        subset="validation",
         target_size=(220, 120),
         batch_size=batch_size,
         class_mode='categorical')
 
 test_generator = test_datagen.flow_from_dataframe(
         dataframe=test_df,
-        directory='data/test',
         x_col="filename",
         y_col="annotation",
         target_size=(220, 120),
         batch_size=batch_size,
         class_mode='categorical')
 
-STEP_SIZE_TRAIN=100#train_generator.n//train_generator.batch_size
-STEP_SIZE_VALID=100#valid_generator.n//valid_generator.batch_size
-STEP_SIZE_TEST=100#test_generator.n//test_generator.batch_size
+STEP_SIZE_TRAIN=10#train_generator.n//train_generator.batch_size
+STEP_SIZE_VALID=10#valid_generator.n//valid_generator.batch_size
+STEP_SIZE_TEST=1000#test_generator.n//test_generator.batch_size
 
 
 
-checkpoint = ModelCheckpoint(save_dir+"/best_model.hdf5", monitor='loss', verbose=1,
-    save_best_only=True, mode='auto', period=1)
+filepath = "saved-model-{epoch:02d}-{accuracy:.2f}.hdf5"
+checkpoint = ModelCheckpoint(save_dir+"/"+filepath, monitor='accuracy', verbose=1, save_best_only=False, mode='max')
 
 history = model.fit_generator(generator=train_generator,
                     steps_per_epoch=STEP_SIZE_TRAIN,
@@ -114,15 +112,20 @@ history = model.fit_generator(generator=train_generator,
                     shuffle=True,
                     callbacks=[checkpoint])
 
-# Plot training & validation accuracy values
-plt.plot(history.history['accuracy'])
-plt.plot(history.history['val_accuracy'])
-plt.title('Model accuracy')
-plt.ylabel('Accuracy')
-plt.xlabel('Epoch')
-plt.legend(['Train', 'Test'], loc='upper left')
-plt.show()
 
+# Plot training & validation accuracy values
+plt.plot(history.history['accuracy'], "g--", label='accuracy')
+plt.plot(history.history['loss'], "b--", label='loss')
+plt.title('Accuracy and Loss')
+plt.ylabel('Data')
+plt.xlabel('Epoch')
+plt.xticks(range(1, epochs))
+plt.legend(loc='upper left')
+plt.show()
+plt.savefig("accuracy_loss.png", dpi=None, facecolor='w', edgecolor='w',
+        orientation='portrait', papertype=None, format=None,
+        transparent=False, bbox_inches=None, pad_inches=0.1,
+        frameon=None, metadata=None)
 
 # Save model and weights
 
@@ -131,8 +134,7 @@ model.save(model_path)
 print('Saved trained model at %s ' % model_path)
 
 # Score trained model.
-scores = model.evaluate(generator=test_generator, 
-                        steps=STEP_SIZE_TEST)
+scores = model.evaluate_generator(generator=test_generator, steps=STEP_SIZE_TEST)
 print('Test loss:', scores[0])
 print('Test accuracy:', scores[1])
 
