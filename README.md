@@ -72,9 +72,14 @@ For finding best match with randomized templates on a  on a batch_size of 1000 t
 
 Set the flag ```bash --randomized``` to ```bash False ``` if you want to test it out on averaged templates.  
 
-Next, I have implemented a simple Convolutional Neural Network (CNN) using the Keras framework. The parameters 
+Next, I have implemented a simple Convolutional Neural Network (CNN) using the Keras framework. To train the 
+model on the dataset, execute: 
 
-for training can be tweaked with the following lines in model.py. 
+```bash 
+python model.py 
+```
+
+The parameters for training can be tweaked with the following lines in model.py.
 
 ```python  
 # traning parameters 
@@ -82,7 +87,13 @@ batch_size = 10
 num_classes = 118 
 epochs = 100
 ```
-Feel free to play around with them and train the network locally on your machine.  
+Feel free to play around with them and train the network locally on your machine. Training the model 
+producing, metrics both on the terminal and visually. To make predictions later on saved checkpoint 
+files, execute:  
+
+```bash
+python predict.py 
+```
 
 ## Reference 
 
