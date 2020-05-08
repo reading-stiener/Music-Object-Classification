@@ -25,7 +25,7 @@ test_df = pd.read_csv("processed_data_files/test_image_annotation.csv", dtype=st
 # traning parameters 
 batch_size = 10
 num_classes = 118 
-epochs = 1
+epochs = 100
 input_shape = (220,120,3)
 
 # directory for saving trained weights
@@ -115,17 +115,16 @@ history = model.fit_generator(generator=train_generator,
 
 # Plot training & validation accuracy values
 plt.plot(history.history['accuracy'], "g--", label='accuracy')
-plt.plot(history.history['loss'], "b--", label='loss')
-plt.title('Accuracy and Loss')
+plt.plot(history.history['val_accuracy'], "b--", label='val_accuracy')
+plt.title('Accuracy and Validation accuracy')
 plt.ylabel('Data')
 plt.xlabel('Epoch')
-plt.xticks(range(1, epochs))
+#plt.xticks(range(1, epochs))
 plt.legend(loc='upper left')
+
+plt.savefig("accuracy&validation.png")
 plt.show()
-plt.savefig("accuracy_loss.png", dpi=None, facecolor='w', edgecolor='w',
-        orientation='portrait', papertype=None, format=None,
-        transparent=False, bbox_inches=None, pad_inches=0.1,
-        frameon=None, metadata=None)
+plt.close()
 
 # Save model and weights
 

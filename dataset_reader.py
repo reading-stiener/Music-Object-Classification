@@ -57,15 +57,15 @@ class class_dataset_reader:
 
         else:  
             if len(os.listdir(self.file_path)) and self.train_test:  
-                self.images = np.load(self.file_path+"/train_images.npy") 
-                self.annotations = np.load(self.file_path+"/train_annotations.npy")
+                self.train_images = np.load(self.file_path+"/train_images.npy") 
+                self.train_annotations = np.load(self.file_path+"/train_annotations.npy")
                 self.test_images = np.load(self.file_path+"/test_images.npy") 
                 self.test_annotations = np.load(self.file_path+"/test_annotations.npy")
                 self.val_images = np.load(self.file_path+"/val_images.npy") 
                 self.val_annotations = np.load(self.file_path+"/val_annotations.npy")
 
                 if os.path.exists(self.file_path+"/train_image_annotation.csv"):
-                    train_img_annotation = np.vstack((self.images, self.annotations)).T
+                    train_img_annotation = np.vstack((self.train_images, self.train_annotations)).T
                     np.savetxt(self.file_path+"/train_image_annotation.csv", train_img_annotation, 
                             delimiter=",",
                             fmt=["%s", "%s"],
@@ -97,7 +97,8 @@ class class_dataset_reader:
         val_indices = [] 
         train_indices = []
         
-        print("splitting data: " + str(self.split[0]) + "-training " + str(self.split[1]) + "-validation "+ str(self.split[2]) + "-testing")
+        print("splitting data: " + str(self.split[0]) + "-training " \
+            + str(self.split[1]) + "-validation "+ str(self.split[2]) + "-testing")
 
         # going through unique annotations 
         for cla in np.unique(self.annotations):
@@ -108,26 +109,30 @@ class class_dataset_reader:
                 cla_indices = np.where(self.annotations == cla)[0]
                 np.random.shuffle(cla_indices)
                 train_indices.append(cla_indices[0:int(len(cla_indices) * self.split[0])])
-                val_indices.append(cla_indices[int(len(cla_indices) * self.split[0]):int(len(cla_indices) * self.split[1])])
-                test_indices.append(cla_indices[int(len(cla_indices) * self.split[2]):len(cla_indices)])
+                
+                val_indices.append(cla_indices[int(len(cla_indices) * self.split[0]): \
+                                    int(len(cla_indices) * (self.split[0]+self.split[1]))])
+                
+                test_indices.append(cla_indices[int(len(cla_indices)* \
+                (self.split[0]+self.split[1]+self.split[2])):len(cla_indices)])
         
         # concatenating the numpy arrays for every piece
         train_indices = np.concatenate(train_indices)
         val_indices = np.concatenate(val_indices)
         test_indices = np.concatenate(test_indices)
         
-        #print("train indices", train_indices) 
-        #print("test indices", test_indices) 
+      
 
         # setting up train, validation, and test set
-        self.test_images = self.images[test_indices]
-        self.test_annotations = self.annotations[test_indices]
-
-        self.images = self.images[train_indices]
-        self.annotations = self.annotations[train_indices]
+       
+        self.train_images = self.images[train_indices]
+        self.train_annotations = self.annotations[train_indices]
 
         self.val_images = self.images[val_indices]
         self.val_annotations = self.annotations[val_indices]
+
+        self.test_images = self.images[test_indices]
+        self.test_annotations = self.annotations[test_indices]
         print(len(test_indices))
 
         # Shuffle the test data
@@ -137,14 +142,14 @@ class class_dataset_reader:
         self.test_images = self.test_images[perm]
         self.test_annotations = self.test_annotations[perm]
 
-        np.save(self.file_path+"/train_images.npy", self.images) 
-        np.save(self.file_path+"/train_annotations.npy", self.annotations)
+        np.save(self.file_path+"/train_images.npy", self.train_images) 
+        np.save(self.file_path+"/train_annotations.npy", self.train_annotations)
         np.save(self.file_path+"/test_images.npy", self.test_images) 
         np.save(self.file_path+"/test_annotations.npy", self.test_annotations)
         np.save(self.file_path+"/val_images.npy", self.val_images) 
         np.save(self.file_path+"/val_annotations.npy", self.val_annotations)
 
-        train_img_annotation = np.vstack((self.images, self.annotations)).T
+        train_img_annotation = np.vstack((self.train_images, self.train_annotations)).T
         np.savetxt(self.file_path+"/train_image_annotation.csv", train_img_annotation, 
                            delimiter=",",
                            fmt=["%s", "%s"],
@@ -188,7 +193,6 @@ class class_dataset_reader:
                 imwrite(dest_image_path, im)
                 self.annotations.append(class_index)
                 count += 1
-
 
     
     def test_set(self):  
