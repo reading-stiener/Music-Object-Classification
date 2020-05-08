@@ -86,7 +86,8 @@ Feel free to play around with them and train the network locally on your machine
 
 ## Reference 
 
-I have heavily borrowed and modified code from the following references for this project 
+I have borrowed and modified code from the following references for this project 
 
 [Keras Documentation example for CNN](https://keras.io/examples/cifar10_cnn/) 
+
 [DeepScores test repository](https://github.com/tuggeluk/DeepScoresExamples) 
